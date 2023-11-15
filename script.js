@@ -26,45 +26,44 @@ class View {
 
   }
 
-
   createElement(elemTag, elemClass){
     const element = document.createElement(elemTag);
     if (elemClass) element.classList.add(elemClass);
     return element;
   }
 
-
-  createUser (user, obj) {
-    const userElement = this.createElement('li' , 'block__listItem');
-    userElement.insertAdjacentHTML(`afterbegin`,`<button class='block__ListBtn' data-user-info='${obj}' >${user.name}</button>` )
-    this.blockPeopleList.append(userElement);
+  createUser(user, obj) {
+    const userElement = this.createElement('li', 'block__listItem');
+    const button = this.createElement('button', 'block__ListBtn');
+    button.setAttribute('data-user-info', obj);
+    button.textContent = user.name;
+    userElement.appendChild(button);
+    this.blockPeopleList.appendChild(userElement);
   }
-
-  createSelectedUser (selectedItem) {
-
+  
+  createSelectedUser(selectedItem) {
     this.blockInput.value = '';
     this.blockPeopleList.textContent = '';
-    
+  
     const obj = JSON.parse(selectedItem.getAttribute('data-user-info'));
-    const userElement = this.createElement('li' , 'block__selectedItem');
-
-    userElement.insertAdjacentHTML( `afterbegin`, `
-    <div class='block__selectedInfo'>
+    const userElement = this.createElement('li', 'block__selectedItem');
+    const selectedInfo = this.createElement('div', 'block__selectedInfo');
+    selectedInfo.innerHTML = `
       <p>Name: ${obj.name}</p>
       <p>Owner: ${obj.Owner}</p>
       <p>Stars: ${obj.Stars}</p>
-    </div>
-    <div class ='block__deleteBtnWrapper'>
-      <button class='block__deleteBtn'></button>
-    </div>
-    `)
-
-    this.blockSelectedRepoList.append(userElement);
-
-    if (this.blockSelectedRepoList.children.length > 3) this.blockSelectedRepoList.style.overflowY = 'scroll';
-
+    `;
+    const deleteBtnWrapper = this.createElement('div', 'block__deleteBtnWrapper');
+    const deleteBtn = this.createElement('button', 'block__deleteBtn');
+    deleteBtnWrapper.appendChild(deleteBtn);
+    userElement.appendChild(selectedInfo);
+    userElement.appendChild(deleteBtnWrapper);
+    this.blockSelectedRepoList.appendChild(userElement);
+  
+    if (this.blockSelectedRepoList.children.length > 3) {
+      this.blockSelectedRepoList.style.overflowY = 'scroll';
+    }
   }
-
 
   removeSelectedUser (elem) {
     if(elem.tagName == 'BUTTON') this.blockSelectedRepoList.removeChild(elem.offsetParent.parentNode);
@@ -73,68 +72,71 @@ class View {
 
 }
 
-
 const USER_PER_PAGE = 5;
 
 class Search {
-  constructor (view) {
+  constructor(view) {
     this.view = view;
     this.debounceTime = 500;
 
-
-    this.view.blockInput.addEventListener('keyup', this.debounce(this.loadUsers, this.debounceTime).bind(this))
-    this.view.blockPeopleList.addEventListener('click', (e) =>  this.view.createSelectedUser(e.target) )
-    this.view.blockSelectedRepoList.addEventListener('click', (e) => this.view.removeSelectedUser(e.srcElement))
+    this.view.blockInput.addEventListener('input', this.debounce(this.loadUsers, this.debounceTime).bind(this));
+    this.view.blockPeopleList.addEventListener('click', (e) => this.view.createSelectedUser(e.target));
+    this.view.blockSelectedRepoList.addEventListener('click', (e) => this.view.removeSelectedUser(e.target));
   }
 
-  async loadUsers () {
-    if (this.view.blockInput.value.trim() != ''){
+  async loadUsers() {
+    const inputValue = this.view.blockInput.value.trim();
+
+    if (inputValue !== '') {
       this.view.blockNoFound.style.display = 'none';
-      this.clearUsers()
-      await fetch(`https://api.github.com/search/repositories?q=${this.view.blockInput.value}&per_page=${USER_PER_PAGE}`)
-      .then((res)=> {
-        if (res.ok) {
-          this.view.blockError.style.display = `none`;
-          return res.json()
-        }else {
-          return Promise.reject(res);
-        }
-      })
-      .then ( (res) => {
-        res.items.forEach((elem) =>{
-          this.view.createUser(elem, JSON.stringify({name : elem.name, Owner : elem.owner.login, Stars: elem.stargazers_count  }))
-        })
-        if (this.view.blockPeopleList.children.length == 0) this.view.blockNoFound.style.display = 'block';
-      })
-      .catch((err)=> {
-        console.log(err);
-        this.view.blockError.style.display = `block`;
-        this.view.blockError.textContent = `${err.status}. \n Something was wrong. Please, try it later`;
-      })
-
-    }else {
       this.clearUsers();
-    } 
+
+      try {
+        const response = await fetch(`https://api.github.com/search/repositories?q=${inputValue}&per_page=${USER_PER_PAGE}`);
+
+        if (response.ok) {
+          this.view.blockError.style.display = 'none';
+          const data = await response.json();
+
+          data.items.forEach((elem) => {
+            this.view.createUser(elem, JSON.stringify({
+              name: elem.name,
+              Owner: elem.owner.login,
+              Stars: elem.stargazers_count,
+            }));
+          });
+
+          if (this.view.blockPeopleList.children.length === 0) {
+            this.view.blockNoFound.style.display = 'block';
+          }
+        } else {
+          throw response;
+        }
+      } catch (err) {
+        console.log(err);
+        this.view.blockError.style.display = 'block';
+        this.view.blockError.textContent = `${err.status}. \n Something was wrong. Please, try it later`;
+      }
+    } else {
+      this.clearUsers();
+    }
   }
 
-  clearUsers () {
+  clearUsers() {
     this.view.blockPeopleList.textContent = '';
   }
 
   debounce = (fn, debounceTime) => {
-  
     let timeout;
-  
+
     return function () {
-      
-      const fnCall = ()=> {
-        fn.apply(this, arguments)
-      }
+      const fnCall = () => {
+        fn.apply(this, arguments);
+      };
       clearTimeout(timeout);
       timeout = setTimeout(fnCall, debounceTime);
     };
   };
-
 }
 
-new Search (new View())
+new Search(new View());
