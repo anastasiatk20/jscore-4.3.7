@@ -48,14 +48,17 @@ class View {
     const obj = JSON.parse(selectedItem.getAttribute('data-user-info'));
     const userElement = this.createElement('li', 'block__selectedItem');
     const selectedInfo = this.createElement('div', 'block__selectedInfo');
-    selectedInfo.innerHTML = `
+  
+    selectedInfo.insertAdjacentHTML('beforeend', `
       <p>Name: ${obj.name}</p>
       <p>Owner: ${obj.Owner}</p>
       <p>Stars: ${obj.Stars}</p>
-    `;
+    `);
+  
     const deleteBtnWrapper = this.createElement('div', 'block__deleteBtnWrapper');
     const deleteBtn = this.createElement('button', 'block__deleteBtn');
     deleteBtnWrapper.appendChild(deleteBtn);
+  
     userElement.appendChild(selectedInfo);
     userElement.appendChild(deleteBtnWrapper);
     this.blockSelectedRepoList.appendChild(userElement);
@@ -84,20 +87,20 @@ class Search {
     this.view.blockSelectedRepoList.addEventListener('click', (e) => this.view.removeSelectedUser(e.target));
   }
 
-  async loadUsers() {
-    const inputValue = this.view.blockInput.value.trim();
-
+  async loadUsers(event) {
+    const inputValue = event.target.value.trim();
+  
     if (inputValue !== '') {
       this.view.blockNoFound.style.display = 'none';
       this.clearUsers();
-
+  
       try {
         const response = await fetch(`https://api.github.com/search/repositories?q=${inputValue}&per_page=${USER_PER_PAGE}`);
-
+  
         if (response.ok) {
           this.view.blockError.style.display = 'none';
           const data = await response.json();
-
+  
           data.items.forEach((elem) => {
             this.view.createUser(elem, JSON.stringify({
               name: elem.name,
@@ -105,7 +108,7 @@ class Search {
               Stars: elem.stargazers_count,
             }));
           });
-
+  
           if (this.view.blockPeopleList.children.length === 0) {
             this.view.blockNoFound.style.display = 'block';
           }
