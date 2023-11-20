@@ -1,5 +1,5 @@
 class View {
-  constructor () {
+  constructor() {
     this.app = document.getElementById('app');
 
     this.block = this.createElement('div', 'block');
@@ -7,12 +7,12 @@ class View {
     this.blockInput = this.createElement('input', 'block__input');
     this.block.append(this.blockInput);
 
-    this.blockNoFound = this.createElement('span', 'block__noFoundStr')
+    this.blockNoFound = this.createElement('span', 'block__noFoundStr');
     this.blockNoFound.textContent = `No found`;
     this.blockNoFound.style.display = 'none';
-    this.block.append(this.blockNoFound)
+    this.block.append(this.blockNoFound);
 
-    this.blockError = this.createElement('span', 'block__ErrText')
+    this.blockError = this.createElement('span', 'block__ErrText');
     this.blockError.style.display = `none`;
     this.block.append(this.blockError);
 
@@ -20,13 +20,12 @@ class View {
     this.block.append(this.blockPeopleList);
 
     this.blockSelectedRepoList = this.createElement('ul', 'block__selectedRepoList');
-    this.block.append(this.blockSelectedRepoList)
+    this.block.append(this.blockSelectedRepoList);
 
     this.app.append(this.block);
-
   }
 
-  createElement(elemTag, elemClass){
+  createElement(elemTag, elemClass) {
     const element = document.createElement(elemTag);
     if (elemClass) element.classList.add(elemClass);
     return element;
@@ -40,39 +39,43 @@ class View {
     userElement.appendChild(button);
     this.blockPeopleList.appendChild(userElement);
   }
-  
+
   createSelectedUser(selectedItem) {
     this.blockInput.value = '';
     this.blockPeopleList.textContent = '';
-  
+
     const obj = JSON.parse(selectedItem.getAttribute('data-user-info'));
     const userElement = this.createElement('li', 'block__selectedItem');
     const selectedInfo = this.createElement('div', 'block__selectedInfo');
-  
-    selectedInfo.insertAdjacentHTML('beforeend', `
-      <p>Name: ${obj.name}</p>
-      <p>Owner: ${obj.Owner}</p>
-      <p>Stars: ${obj.Stars}</p>
-    `);
-  
+
+    selectedInfo.textContent = `
+      Name: ${obj.name}
+      Owner: ${obj.Owner}
+      Stars: ${obj.Stars}
+    `;
+
     const deleteBtnWrapper = this.createElement('div', 'block__deleteBtnWrapper');
     const deleteBtn = this.createElement('button', 'block__deleteBtn');
     deleteBtnWrapper.appendChild(deleteBtn);
-  
+
     userElement.appendChild(selectedInfo);
     userElement.appendChild(deleteBtnWrapper);
     this.blockSelectedRepoList.appendChild(userElement);
-  
+
+    
     if (this.blockSelectedRepoList.children.length > 3) {
-      this.blockSelectedRepoList.style.overflowY = 'scroll';
+      this.blockSelectedRepoList.classList.add('scroll');
     }
   }
 
-  removeSelectedUser (elem) {
-    if(elem.tagName == 'BUTTON') this.blockSelectedRepoList.removeChild(elem.offsetParent.parentNode);
-    if (this.blockSelectedRepoList.children.length <= 3) this.blockSelectedRepoList.style.overflowY = 'visible';
-  }
+  removeSelectedUser(elem) {
+    if (elem.tagName == 'BUTTON') this.blockSelectedRepoList.removeChild(elem.offsetParent.parentNode);
 
+
+    if (this.blockSelectedRepoList.children.length <= 3) {
+      this.blockSelectedRepoList.classList.remove('scroll');
+    }
+  }
 }
 
 const USER_PER_PAGE = 5;
@@ -89,18 +92,18 @@ class Search {
 
   async loadUsers(event) {
     const inputValue = event.target.value.trim();
-  
+
     if (inputValue !== '') {
       this.view.blockNoFound.style.display = 'none';
       this.clearUsers();
-  
+
       try {
         const response = await fetch(`https://api.github.com/search/repositories?q=${inputValue}&per_page=${USER_PER_PAGE}`);
-  
+
         if (response.ok) {
           this.view.blockError.style.display = 'none';
           const data = await response.json();
-  
+
           data.items.forEach((elem) => {
             this.view.createUser(elem, JSON.stringify({
               name: elem.name,
@@ -108,7 +111,7 @@ class Search {
               Stars: elem.stargazers_count,
             }));
           });
-  
+
           if (this.view.blockPeopleList.children.length === 0) {
             this.view.blockNoFound.style.display = 'block';
           }
@@ -143,3 +146,4 @@ class Search {
 }
 
 new Search(new View());
+
